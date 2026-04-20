@@ -1,0 +1,793 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>数据智能运营小助手</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/github.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
+
+    <style>
+        body {
+            background-color: #ffffff;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px 0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .header-content {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        .app-icon {
+            font-size: 28px;
+            font-weight: bold;
+        }
+
+        .app-title {
+            font-size: 20px;
+            font-weight: 600;
+            margin: 0;
+        }
+
+        .user-info {
+            margin-left: auto;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            font-size: 14px;
+        }
+
+        #chat-container {
+            height: calc(100vh - 180px);
+            overflow-y: auto;
+            background-color: #ffffff;
+            position: relative;
+            margin: 10px 40px;
+        }
+
+        .message-container {
+            padding: 0 20px;
+        }
+
+        .user-message {
+            margin-bottom: 25px;
+            display: flex;
+            justify-content: flex-end;
+            align-items: flex-start;
+            gap: 10px;
+        }
+
+        .bot-message {
+            margin-bottom: 25px;
+            display: flex;
+            justify-content: flex-start;
+            align-items: flex-start;
+            gap: 10px;
+        }
+
+        .avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            font-weight: 600;
+            flex-shrink: 0;
+        }
+
+        .user-avatar {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            order: 2;
+        }
+
+        .bot-avatar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .message-content-wrapper {
+            display: flex;
+            flex-direction: column;
+            max-width: 70%;
+        }
+
+        .user-message .message-content-wrapper {
+            align-items: flex-end;
+        }
+
+        .bot-message .message-content-wrapper {
+            align-items: flex-start;
+        }
+
+        .message-content {
+            display: inline-block;
+            padding: 16px 20px;
+            border-radius: 18px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            line-height: 1.5;
+            max-width: 100%;
+            word-wrap: break-word;
+        }
+
+        .user-message .message-content {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            border-radius: 18px 18px 6px 18px;
+        }
+
+        .bot-message .message-content {
+            background-color: #f8f9fa;
+            color: #2c3e50;
+            border-radius: 18px 18px 18px 6px;
+            border: 1px solid #e9ecef;
+        }
+
+        .message-time {
+            font-size: 12px;
+            color: #95a5a6;
+            margin-top: 4px;
+            opacity: 0.7;
+        }
+
+        .input-area {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            border-top: 1px solid #e9ecef;
+            padding: 20px;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
+        }
+
+        .input-container {
+            margin: 0 auto;
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            padding: 0 20px;
+        }
+
+        #user-input {
+            flex: 1;
+            padding: 16px 20px;
+            border: 2px solid #e9ecef;
+            border-radius: 25px;
+            font-size: 16px;
+            background: #f8f9fa;
+            transition: all 0.3s ease;
+        }
+
+        #user-input:focus {
+            border-color: #4facfe;
+            background: white;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(79, 172, 254, 0.1);
+        }
+
+        #send-btn {
+            padding: 16px 30px;
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            border: none;
+            border-radius: 25px;
+            color: white;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        #send-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(79, 172, 254, 0.3);
+        }
+
+        #send-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .rating-section {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .rating-buttons {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .like-button {
+            background: rgba(79, 172, 254, 0.1);
+            border: 2px solid #4facfe;
+            color: #4facfe;
+            padding: 8px 20px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .like-button:hover {
+            background: #4facfe;
+            color: white;
+        }
+
+        .like-button.liked {
+            background: #4facfe;
+            color: white;
+        }
+
+        .rating-stars {
+            display: inline-flex;
+            gap: 4px;
+        }
+
+        .star {
+            font-size: 20px;
+            cursor: pointer;
+            color: #ddd;
+            transition: color 0.2s;
+        }
+
+        .star:hover {
+            color: #ffc107;
+        }
+
+        .star.active {
+            color: #ffc107;
+        }
+
+
+        .bot-message .message-content h4 {
+            color: #2c3e50;
+            font-size: 1.2em;
+            margin-bottom: 12px;
+            border-bottom: 2px solid #e9ecef;
+            padding-bottom: 8px;
+        }
+
+        .bot-message .message-content h5 {
+            color: #495057;
+            font-size: 1em;
+            margin: 15px 0 8px;
+        }
+
+        .bot-message .message-content code {
+            background-color: #f1f3f4;
+            padding: 3px 6px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+        }
+
+        .bot-message .message-content pre {
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 16px;
+            overflow-x: auto;
+            margin: 12px 0;
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .message-content {
+                max-width: 85%;
+            }
+
+            .header-content {
+                padding: 0 15px;
+            }
+
+            .app-title {
+                font-size: 18px;
+            }
+
+            .input-container {
+                padding: 0 15px;
+            }
+        }
+
+
+        .welcome-message {
+            text-align: center;
+            color: #6c757d;
+            font-size: 14px;
+            margin-top: 20px;
+        }
+
+        .typing-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 20px;
+            background-color: #f8f9fa;
+            border-radius: 18px;
+            color: #6c757d;
+            font-style: italic;
+        }
+
+        .typing-dots {
+            display: flex;
+            gap: 4px;
+        }
+
+        .typing-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: #6c757d;
+            animation: typing 1.4s infinite ease-in-out;
+        }
+
+        .typing-dot:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .typing-dot:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes typing {
+            0%, 60%, 100% { transform: translateY(0); opacity: 0.6; }
+            30% { transform: translateY(-4px); opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-content">
+            <div class="app-icon">💡</div>
+            <h1 class="app-title">数据智能运营小助手</h1>
+            <div class="user-info">
+                <span>欢迎, {{ username }}</span>
+                {% if username == 'admin' %}
+                <a href="{{ url_for('admin') }}" style="color: white; text-decoration: none; margin-right: 15px;">后台管理</a>
+                {% endif %}
+                <a href="{{ url_for('logout') }}" style="color: white; text-decoration: none;">退出</a>
+            </div>
+        </div>
+    </div>
+
+    <div id="chat-container">
+
+    </div>
+
+    <div class="input-area">
+        <div class="input-container">
+            <input type="text" id="user-input" class="form-control" placeholder="请输入您的问题..." autocomplete="off">
+            <button type="submit" id="send-btn">发送</button>
+        </div>
+    </div>
+
+
+    <script>
+        const chatContainer = document.getElementById('chat-container');
+        const userInput = document.getElementById('user-input');
+        const sendBtn = document.getElementById('send-btn');
+        const messageContainer = document.querySelector('.message-container');
+
+        // 初始化 marked 配置
+        marked.setOptions({
+            gfm: true,
+            breaks: true,
+            highlight: function(code, lang) {
+                if (lang && hljs.getLanguage(lang)) {
+                    return hljs.highlight(code, { language: lang }).value;
+                }
+                return hljs.highlightAuto(code).value;
+            }
+        });
+
+        // 使用 marked 渲染 Markdown 内容
+        function renderMarkdown(mdText) {
+            return marked.parse(mdText);
+        }
+
+        // 添加打字指示器（带头像）
+        function addTypingIndicator() {
+            const indicatorDiv = document.createElement('div');
+            indicatorDiv.className = 'bot-message';
+            indicatorDiv.id = 'typing-indicator';
+
+            // 创建头像
+            const avatarDiv = document.createElement('div');
+            avatarDiv.className = 'avatar bot-avatar';
+            avatarDiv.textContent = '🤖';
+
+            // 创建消息内容包装器
+            const contentWrapper = document.createElement('div');
+            contentWrapper.className = 'message-content-wrapper';
+
+            const indicatorContent = document.createElement('div');
+            indicatorContent.className = 'typing-indicator';
+
+            const textSpan = document.createElement('span');
+            textSpan.textContent = 'AI正在思考中';
+
+            const dotsDiv = document.createElement('div');
+            dotsDiv.className = 'typing-dots';
+
+            for (let i = 0; i < 3; i++) {
+                const dot = document.createElement('div');
+                dot.className = 'typing-dot';
+                dotsDiv.appendChild(dot);
+            }
+
+            indicatorContent.appendChild(textSpan);
+            indicatorContent.appendChild(dotsDiv);
+            contentWrapper.appendChild(indicatorContent);
+
+            indicatorDiv.appendChild(avatarDiv);
+            indicatorDiv.appendChild(contentWrapper);
+            chatContainer.appendChild(indicatorDiv);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+            return indicatorDiv;
+        }
+
+        // 移除打字指示器
+        function removeTypingIndicator() {
+            const indicator = document.getElementById('typing-indicator');
+            if (indicator) {
+                indicator.remove();
+            }
+        }
+
+        // 格式化机器人消息（支持Markdown渲染）- 用于即时显示
+        function formatBotMessage(content, includeRatingSection = false, conversationId = null) {
+            return renderMarkdown(content);
+        }
+
+        // 添加消息到聊天窗口（带头像）
+        function addMessage(content, isUser, conversationId = null) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = isUser ? 'user-message' : 'bot-message';
+
+            if (conversationId) {
+                messageDiv.setAttribute('data-conversation-id', conversationId);
+            }
+
+            // 创建头像
+            const avatarDiv = document.createElement('div');
+            avatarDiv.className = isUser ? 'avatar user-avatar' : 'avatar bot-avatar';
+            avatarDiv.textContent = isUser ? '{{ user_initials }}' : '🤖';
+
+            // 创建消息内容包装器
+            const contentWrapper = document.createElement('div');
+            contentWrapper.className = 'message-content-wrapper';
+
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'message-content';
+
+            if (isUser) {
+                // 所有用户消息都渲染Markdown
+                contentDiv.innerHTML = renderMarkdown(content);
+            } else {
+                // 机器人消息使用formatBotMessage（内部也是renderMarkdown）
+                contentDiv.innerHTML = formatBotMessage(content);
+            }
+
+            contentWrapper.appendChild(contentDiv);
+
+            // 添加头像和消息内容
+            if (isUser) {
+                messageDiv.appendChild(contentWrapper);
+                messageDiv.appendChild(avatarDiv);
+            } else {
+                messageDiv.appendChild(avatarDiv);
+                messageDiv.appendChild(contentWrapper);
+            }
+
+            chatContainer.appendChild(messageDiv);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+
+            return messageDiv;
+        }
+
+        // 评价对话
+        function rateConversation(conversationId, rating, element) {
+            const stars = element.parentElement.querySelectorAll('.star');
+            stars.forEach((star, index) => {
+                if (index < rating) {
+                    star.classList.add('active');
+                } else {
+                    star.classList.remove('active');
+                }
+            });
+
+            fetch('/api/rate', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    conversation_id: conversationId,
+                    rating: rating
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showToast('评分成功！');
+                }
+            })
+            .catch(error => {
+                console.error('评分失败:', error);
+                showToast('评分失败，请重试');
+            });
+        }
+
+        // 点赞功能
+        function rateLike(conversationId, element) {
+            const liked = element.classList.contains('liked');
+
+            fetch('/api/rate', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    conversation_id: conversationId,
+                    liked: !liked
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    if (liked) {
+                        element.classList.remove('liked');
+                        element.textContent = '👍 有用';
+                        showToast('已取消点赞');
+                    } else {
+                        element.classList.add('liked');
+                        element.textContent = '👍 已点赞';
+                        showToast('点赞成功！');
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('点赞失败:', error);
+                showToast('操作失败，请重试');
+            });
+        }
+
+        // 显示提示信息
+        function showToast(message) {
+            const toast = document.createElement('div');
+            toast.textContent = message;
+            toast.style.cssText = `
+                position: fixed;
+                top: 18px;
+                right: 200px;
+                background: #007bff;
+                color: white;
+                padding: 10px 20px;
+                border-radius: 5px;
+                z-index: 1000;
+                animation: fadeInOut 3s ease-in-out;
+            `;
+
+            document.body.appendChild(toast);
+
+            setTimeout(() => {
+                toast.remove();
+            }, 3000);
+        }
+
+        // 打字动画效果
+        function typewriter(messageDiv, text, conversationId, speed = 20) {
+            let i = 0;
+            const contentDiv = messageDiv.querySelector('.message-content');
+            contentDiv.innerHTML = '';
+
+            function typeChar() {
+                if (i < text.length) {
+                    contentDiv.innerHTML = renderMarkdown(text.substring(0, i + 1));
+                    chatContainer.scrollTop = chatContainer.scrollHeight;
+                    i++;
+                    setTimeout(typeChar, speed);
+                } else {
+                    // 打字完成后添加评分区域
+                    if (conversationId) {
+                        const ratingSection = document.createElement('div');
+                        ratingSection.className = 'rating-section';
+                        ratingSection.innerHTML = `
+                            <div class="rating-buttons">
+                                <button class="like-button" onclick="rateLike(${conversationId}, this)">👍 有用</button>
+                                <div class="rating-stars">
+                                    ${Array.from({length: 5}, (_, i) => `
+                                        <span class="star" onclick="rateConversation(${conversationId}, ${i + 1}, this)"
+                                              data-rating="${i + 1}">★</span>
+                                    `).join('')}
+                                </div>
+                            </div>`;
+                        contentDiv.appendChild(ratingSection);
+                    }
+                }
+            }
+            typeChar();
+        }
+
+        // 发送消息函数
+        async function sendMessage() {
+            const query = userInput.value.trim();
+            if (!query) return;
+
+        // 移除欢迎消息（如果有的话）
+        const welcomeMsg = document.querySelector('.welcome-message');
+        if (welcomeMsg) {
+            welcomeMsg.remove();
+        }
+
+            // 添加用户消息
+            addMessage(query, true);
+            userInput.value = '';
+            userInput.disabled = true;
+            sendBtn.disabled = true;
+
+            // 显示打字指示器
+            addTypingIndicator();
+
+            try {
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify({ query: query })
+                });
+
+                if (!response.ok) {
+                    throw new Error('网络响应错误');
+                }
+
+                const data = await response.json();
+                console.log("API响应:", data);
+
+                // 移除打字指示器
+                removeTypingIndicator();
+
+                // 创建AI消息容器
+                const messageDiv = addMessage('', false, data.conversation_id);
+
+                // 开始打字动画
+                typewriter(messageDiv, data.content, data.conversation_id, 10);
+
+            } catch (error) {
+                console.error('请求失败:', error);
+                removeTypingIndicator();
+
+                // 检查是否是JSON响应
+                let errorMsg = '抱歉，聊天服务暂时不可用';
+                if (error.response) {
+                    try {
+                        const errorData = await error.response.json();
+                        if (errorData.detail) {
+                            errorMsg += `\n\n技术详情: ${errorData.detail}`;
+                        }
+                    } catch (e) {
+                        console.log('无法解析错误响应:', e);
+                    }
+                } else {
+                    errorMsg += `\n\n网络错误: ${error.message}`;
+                }
+
+                addMessage(errorMsg, false);
+            } finally {
+                userInput.disabled = false;
+                sendBtn.disabled = false;
+                userInput.focus();
+            }
+        }
+
+        // 点击发送按钮
+        sendBtn.addEventListener('click', sendMessage);
+
+        // 回车键发送
+        userInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+        // 检查是否是首次访问，如果是则自动显示欢迎消息
+        if ({{ is_first_visit|tojson }}) {
+            setTimeout(() => {
+                sendWelcomeMessage();
+            }, 500);
+        }
+
+        // 聚焦输入框
+        userInput.focus();
+
+        // 添加CSS动画
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes fadeInOut {
+                0% { opacity: 0; transform: translateY(-20px); }
+                10% { opacity: 1; transform: translateY(0); }
+                90% { opacity: 1; transform: translateY(0); }
+                100% { opacity: 0; transform: translateY(-20px); }
+            }
+        `;
+        document.head.appendChild(style);
+
+        // 发送欢迎消息函数
+        async function sendWelcomeMessage() {
+            try {
+                // 显示打字指示器
+                addTypingIndicator();
+
+                // 发送空请求获取欢迎消息
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify({ query: '' })
+                });
+
+                if (!response.ok) {
+                    throw new Error('网络响应错误');
+                }
+
+                const data = await response.json();
+
+                // 移除打字指示器
+                removeTypingIndicator();
+
+                // 创建AI消息容器
+                const messageDiv = addMessage('', false, data.conversation_id);
+
+                // 开始打字动画，欢迎消息不添加评分区域
+                typewriter(messageDiv, data.content, null, 10);
+
+            } catch (error) {
+                console.error('获取欢迎消息失败:', error);
+                removeTypingIndicator();
+
+                // 创建默认的欢迎消息
+                const defaultWelcomeMessage = `👋 欢迎使用智能数据助手
+
+你可以直接向我提问表、字段或指标相关的问题，例如：
+
+- 用户登录事实表是做什么的？
+
+- login_date 字段代表什么含义？
+
+- 最近30天活跃用户总数的指标定义？
+
+我会基于系统中的元数据，为你提供专业、准确的解答。`;
+
+                const messageDiv = addMessage('', false);
+                const contentDiv = messageDiv.querySelector('.message-content');
+                contentDiv.innerHTML = renderMarkdown(defaultWelcomeMessage);
+            }
+        }
+    </script>
+</body>
+</html>

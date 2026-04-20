@@ -1,0 +1,31 @@
+services:
+  doris-fe:
+    image: apache/doris:fe-3.0.6.2
+    container_name: doris-fe
+    environment:
+      - FE_SERVERS=fe1:127.0.0.1:9010
+      - FE_ID=1
+      - PRIORITY_NETWORKS=127.0.0.1/24
+    ports:
+      - "8030:8030"
+      - "9020:9020"
+      - "9030:9030"
+      - "9010:9010"
+    volumes:
+      - ./doris/fe:/opt/doris/fe/doris-meta
+      - ./doris/log:/opt/doris/fe/log
+
+  doris-be:
+    image: apache/doris:be-3.0.6.2
+    container_name: doris-be
+    depends_on:
+      - doris-fe
+    environment:
+      - FE_SERVERS=fe1:127.0.0.1:9010
+      - BE_ADDR=127.0.0.1:9050
+      - PRIORITY_NETWORKS=127.0.0.1/24
+    ports:
+      - "8040:8040"
+    volumes:
+      - ./doris/be:/opt/doris/be/storage
+      - ./doris/log:/opt/doris/be/log

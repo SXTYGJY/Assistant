@@ -1,0 +1,9 @@
+flask==3.0.2
+werkzeug==3.0.1
+mysql-connector-python==8.3.0
+python-dotenv==1.0.1
+langchain-community==0.0.29
+langchain-core==0.1.33
+dashscope==1.14.0
+chromadb==0.4.24
+numpy==1.26.4

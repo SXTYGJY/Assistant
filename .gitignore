@@ -1,0 +1,31 @@
+# IDE
+.idea/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Virtual environment
+.venv/
+venv/
+env/
+
+# OS
+.DS_Store
+__MACOSX/
+
+# Sensitive config
+DataIntelOperation/config.py
+
+# Vector store / generated data
+DataIntelOperation/data/chroma/
+DataIntelOperation/data/uploads/
+
+# Logs
+*.log
+
+# Chat history
+data/chat_history/
