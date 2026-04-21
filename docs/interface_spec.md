@@ -108,11 +108,12 @@ from settings import Settings
 
 @dataclass
 class RouteResult:
-    label: str      # "simple_table" | "simple_column" | "complex" | "out_of_scope"
-    keyword: str    # 提取的搜索关键词，out_of_scope 时为空字符串
+    label: str        # "simple_table" | "simple_column" | "complex" | "out_of_scope"
+    keyword: str      # 提取的搜索关键词，out_of_scope 时为空字符串
+    confidence: float # 分类置信度 [0,1]
     raw_response: str
 
-OUT_OF_SCOPE_REPLY: str = "抱歉，我只能回答数据表、字段和指标相关的问题。"
+OUT_OF_SCOPE_REPLY: str = "您好，我是数据助手，仅支持数据元数据查询和业务指标相关问题。如需其他帮助，请联系相关团队。"
 
 class QueryRouter:
     def __init__(self, settings: Settings) -> None:
@@ -198,7 +199,9 @@ class AgentResponse:
     total_latency_ms: int
 
 class DataAgent:
-    def __init__(self, settings: Settings, db_conn) -> None: ...
+    def __init__(self, settings: Settings, db_conn) -> None:
+        # db_conn 为细化新增参数，SPEC 未列出；用于构造 HierarchicalMemory 和 TraceCollector
+        ...
 
     def run(self, query: str, user_id: int) -> AgentResponse:
         # 1. collector = TraceCollector(user_id, query)
@@ -502,12 +505,13 @@ from settings import Settings
 class MemorySummary:
     user_id: int
     summary: str
-    updated_at: str   # ISO-8601
+    covered_turns: int  # 摘要覆盖的对话轮数，对应 memory_summaries.covered_turns
+    updated_at: str     # ISO-8601
 
 class LongTermMemory:
     """
     用 qwen-turbo 对历史对话做摘要，持久化到 MySQL memory_summaries 表。
-    表结构：id, user_id, summary, created_at, updated_at
+    表结构：id, user_id, summary, covered_turns, created_at, updated_at
     """
 
     def __init__(self, settings: Settings, db_conn) -> None: ...
@@ -665,40 +669,57 @@ trace_id_filter: TraceIdFilter
 
 ---
 
-### observability/dashboard.py（Streamlit 入口）
+### observability/dashboard/app.py（Streamlit 入口）
 
 ```python
-"""运行方式：streamlit run observability/dashboard.py"""
+"""
+运行方式：streamlit run observability/dashboard/app.py
+目录结构：
+  observability/dashboard/
+  ├── app.py           # 入口，侧边栏导航
+  └── pages/
+      ├── overview.py      # 系统总览（组件配置 + 数据统计）
+      ├── data_browser.py  # 数据浏览器（文档 + Chunk 详情）
+      ├── ingestion.py     # Ingestion 管理（上传 + 进度 + 删除）
+      ├── agent_traces.py  # Agent 追踪（推理链路 + 工具调用详情）
+      └── evaluation.py    # 评估面板（Ragas 指标 + 历史趋势）
+"""
 
 def main() -> None:
     # st.set_page_config(title="DataIntel 监控面板", layout="wide")
-    # 侧边栏页面选择：概览 / 对话详情 / 评估报告
+    # 侧边栏页面路由到对应 pages/ 模块
     ...
-
-def render_overview(db_conn) -> None:
-    """
-    指标卡片：今日请求数、平均延迟、成功率、路由分布饼图。
-    数据来源：agent_traces，按 created_at 过滤当天。
-    """
-
-def render_conversation_detail(db_conn) -> None:
-    """
-    输入 trace_id 或 user_id 查询单条 trace。
-    展示：query -> route -> tool_calls 时间线 -> answer。
-    tool_calls 时间线用 st.expander 逐条展开。
-    """
-
-def render_evaluation_report(db_conn) -> None:
-    """
-    读取 evaluation_results 表，展示：
-    - Ragas 指标折线图（按日期聚合均值）
-    - 低分对话列表（score < 阈值，可点击跳转详情）
-    """
 
 def _get_db_conn():
     # 读取 settings，返回 mysql.connector 连接
     # 用 @st.cache_resource 缓存连接
     ...
+```
+
+### observability/dashboard/pages/overview.py
+
+```python
+def render(db_conn) -> None:
+    """指标卡片：今日请求数、平均延迟、成功率、路由分布饼图。
+    数据来源：agent_traces，按 created_at 过滤当天。"""
+```
+
+### observability/dashboard/pages/agent_traces.py
+
+```python
+def render(db_conn) -> None:
+    """输入 trace_id 或 user_id 查询单条 trace。
+    展示：query → route → tool_calls 时间线 → answer。
+    tool_calls 时间线用 st.expander 逐条展开。"""
+```
+
+### observability/dashboard/pages/evaluation.py
+
+```python
+def render(db_conn) -> None:
+    """读取 evaluation_results 表，展示：
+    - Ragas 指标折线图（按日期聚合均值）
+    - 低分对话列表（score < 阈值，可点击跳转详情）"""
 ```
 
 ---
@@ -714,11 +735,11 @@ from settings import Settings
 @dataclass
 class RagasResult:
     trace_id: str
-    faithfulness: float        # 答案与检索内容的一致性 [0,1]
-    answer_relevancy: float    # 答案与问题的相关性 [0,1]
-    context_recall: float      # 检索内容覆盖率 [0,1]
-    composite_score: float     # 加权均值，权重来自 settings.evaluation.ragas_weights
-    raw: dict                  # ragas 原始输出
+    answer_faithfulness: float  # 回答是否有检索依据支撑 [0,1]，对应 SPEC answer_faithfulness
+    answer_relevance: float     # 回答是否真正回答了问题 [0,1]，对应 SPEC answer_relevance
+    context_relevance: float    # 检索文档与问题的相关性 [0,1]，对应 SPEC context_relevance
+    composite_score: float      # 加权均值，权重来自 settings.evaluation.ragas_weights
+    raw: dict                   # ragas 原始输出
 
 class RagasEvaluator:
     """封装 ragas 库，对单条 agent 响应打分。LLM 评判使用 qwen-turbo。"""
@@ -740,9 +761,9 @@ class RagasEvaluator:
         # 返回 ragas 兼容的 LLM 对象（基于 DashScope qwen-turbo）
         ...
 
-    def _composite(self, f: float, ar: float, cr: float) -> float:
+    def _composite(self, af: float, ar: float, cr: float) -> float:
         # weights from settings.evaluation.ragas_weights
-        # 默认 faithfulness:0.4, answer_relevancy:0.4, context_recall:0.2
+        # 默认 answer_faithfulness:0.4, answer_relevance:0.4, context_relevance:0.2
         ...
 ```
 
@@ -784,7 +805,7 @@ class AgentBehaviorEvaluator:
 
 ---
 
-### evaluation/reflection_tool.py
+### tools/reflection_tool.py
 
 ```python
 from langchain.tools import BaseTool
@@ -796,8 +817,8 @@ class ReflectionTool(BaseTool):
     输入：当前 answer 草稿。输出：改进建议字符串。
     每次 run() 最多调用一次，不写 DB。
     """
-    name: str = "reflection"
-    description: str = "当你对当前答案不确定时调用。输入你的答案草稿，返回改进建议。每次 run() 最多调用一次。"
+    name: str = "verify_answer"
+    description: str = "生成 Final Answer 后自动调用，逐条检查关键论断是否有 Observation 支撑。发现无依据断言时返回修正建议。每次 run() 最多调用一次。"
 
     def __init__(self, settings: Settings) -> None: ...
 
@@ -820,6 +841,7 @@ class ReflectionTool(BaseTool):
 ```python
 from dataclasses import dataclass
 from evaluation.ragas_evaluator import RagasResult
+from tools.reflection_tool import ReflectionTool  # noqa: F401  (verify_answer 在 tools/ 下)
 from evaluation.agent_evaluator import AgentBehaviorResult
 
 @dataclass
@@ -827,9 +849,9 @@ class EvaluationRecord:
     trace_id: str
     composite_score: float
     behavior_score: float
-    faithfulness: float
-    answer_relevancy: float
-    context_recall: float
+    answer_faithfulness: float
+    answer_relevance: float
+    context_relevance: float
     tool_call_count: int
     latency_ms: int
 
@@ -908,9 +930,9 @@ evaluation:
   enabled: true
   latency_warn_ms: 5000
   ragas_weights:
-    faithfulness: 0.4
-    answer_relevancy: 0.4
-    context_recall: 0.2
+    answer_faithfulness: 0.4
+    answer_relevance: 0.4
+    context_relevance: 0.2
 ```
 
 ---
